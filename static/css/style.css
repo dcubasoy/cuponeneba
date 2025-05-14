@@ -1,0 +1,14 @@
+/* Minimal custom styles to complement the Bootstrap theme */
+pre {
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.alert {
+    transition: all 0.3s ease;
+}
+
+.btn-sm {
+    white-space: nowrap;
+}

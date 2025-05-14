@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coupon API</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container py-4">
+        <header class="pb-3 mb-4 border-bottom">
+            <h1 class="display-5 fw-bold">GG.deals Coupon Service</h1>
+        </header>
+
+        <div class="p-5 mb-4 bg-body-tertiary rounded-3">
+            <div class="container-fluid py-2">
+                <h2 class="display-6 fw-bold">Cupones</h2>
+                <p class="fs-5">A simple API that fetches, caches, and serves coupon.</p>
+      
+                <div id="cache-status" class="alert alert-secondary">
+                    Loading cache status...
+                </div>
+                <button class="btn btn-primary" id="refresh-btn">Refresh Coupons</button>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="h-100 p-4 bg-body-tertiary border rounded-3">
+                    <h3>API Endpoints</h3>
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">GET /api/coupons</h5>
+                                <p class="mb-1">Get the latest coupon codes (plain text by default)</p>
+                            </div>
+                            <a href="/api/coupons" class="btn btn-sm btn-outline-secondary">Try it</a>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">GET /api/coupons?refresh=true</h5>
+                                <p class="mb-1">Force refresh coupons from the API</p>
+                            </div>
+                            <a href="/api/coupons?refresh=true" class="btn btn-sm btn-outline-secondary">Try it</a>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">GET /api/coupons/status</h5>
+                                <p class="mb-1">Get cache status information</p>
+                            </div>
+                            <a href="/api/coupons/status" class="btn btn-sm btn-outline-secondary">Try it</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+ 
+
+        <footer class="pt-3 mt-4 text-body-secondary border-top">
+            <p>&copy; 2025 </p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to update cache status
+            function updateCacheStatus() {
+                fetch('/api/coupons/status')
+                    .then(response => response.json())
+                    .then(data => {
+                        const statusElement = document.getElementById('cache-status');
+                        
+                        let statusClass = 'alert-secondary';
+                        if (data.status === 'valid') {
+                            statusClass = 'alert-success';
+                        } else if (data.status === 'expired') {
+                            statusClass = 'alert-warning';
+                        } else if (data.status === 'no_cache') {
+                            statusClass = 'alert-info';
+                        }
+                        
+                        // Remove previous alert classes
+                        statusElement.className = 'alert';
+                        statusElement.classList.add(statusClass);
+                        
+                        let html = '<strong>Cache Status:</strong> ';
+                        if (data.status === 'valid') {
+                            html += `<span>Valid</span> (${data.coupon_count} coupons, updated ${timeAgo(data.last_updated)})`;
+                        } else if (data.status === 'expired') {
+                            html += `<span>Expired</span> (${data.coupon_count} coupons, updated ${timeAgo(data.last_updated)})`;
+                        } else {
+                            html += '<span>No cache available</span>';
+                        }
+                        
+                        statusElement.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching cache status:', error);
+                        document.getElementById('cache-status').innerHTML = 
+                            '<strong>Error:</strong> Could not fetch cache status.';
+                    });
+            }
+            
+            // Time ago helper function
+            function timeAgo(timestamp) {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const seconds = Math.floor((now - date) / 1000);
+                
+                let interval = Math.floor(seconds / 31536000);
+                if (interval >= 1) {
+                    return interval + ' year' + (interval === 1 ? '' : 's') + ' ago';
+                }
+                
+                interval = Math.floor(seconds / 2592000);
+                if (interval >= 1) {
+                    return interval + ' month' + (interval === 1 ? '' : 's') + ' ago';
+                }
+                
+                interval = Math.floor(seconds / 86400);
+                if (interval >= 1) {
+                    return interval + ' day' + (interval === 1 ? '' : 's') + ' ago';
+                }
+                
+                interval = Math.floor(seconds / 3600);
+                if (interval >= 1) {
+                    return interval + ' hour' + (interval === 1 ? '' : 's') + ' ago';
+                }
+                
+                interval = Math.floor(seconds / 60);
+                if (interval >= 1) {
+                    return interval + ' minute' + (interval === 1 ? '' : 's') + ' ago';
+                }
+                
+                return Math.floor(seconds) + ' second' + (seconds === 1 ? '' : 's') + ' ago';
+            }
+            
+            // Initialize page
+            updateCacheStatus();
+            
+            // Setup refresh button
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Refreshing...';
+                
+                fetch('/api/coupons?refresh=true')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(() => {
+                        updateCacheStatus();
+                        this.innerHTML = 'Refresh Coupons';
+                        this.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Error refreshing coupons:', error);
+                        this.innerHTML = 'Refresh Failed';
+                        setTimeout(() => {
+                            this.innerHTML = 'Refresh Coupons';
+                            this.disabled = false;
+                        }, 2000);
+                    });
+            });
+            
+            // Auto-refresh status every 30 seconds
+            setInterval(updateCacheStatus, 30000);
+        });
+    </script>
+</body>
+</html>
